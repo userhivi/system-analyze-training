@@ -1,0 +1,200 @@
+openapi: 3.0.3
+
+info:
+  title: Сервис заметок
+  description: Простой сервис для хранения текстовых заметок
+  version: 1.1.0
+
+servers:
+  - url: https://api.notes.example/v1
+    description: Условный сервер
+
+tags:
+  - name: Notes
+    description: Операции с заметками
+
+paths:
+  /notes:
+    get:
+      tags: [Notes]
+      summary: Получить список заметок
+      operationId: listNotes
+      responses:
+        '200':
+          description: Список заметок
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+              example:
+                - id: 1
+                  title: Купить хлеб
+                  text: Зайти в магазин после работы
+                  created_at: '2026-10-09T09:30:00Z'
+                  status: draft
+                - id: 2
+                  title: Позвонить маме
+                  text: Узнать, как дела
+                  created_at: '2026-10-09T10:15:00Z'
+                  status: published
+
+    post:
+      tags: [Notes]
+      summary: Создать заметку
+      description: Новая заметка всегда создаётся со статусом draft.
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteCreate'
+            example:
+              title: Купить хлеб
+              text: Зайти в магазин после работы
+      responses:
+        '201':
+          description: Заметка создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+              example:
+                id: 1
+                title: Купить хлеб
+                text: Зайти в магазин после работы
+                created_at: '2026-10-09T09:30:00Z'
+                status: draft
+        '400':
+          description: Некорректные данные запроса
+
+  /notes/{noteId}:
+    parameters:
+      - name: noteId
+        in: path
+        required: true
+        description: Идентификатор заметки
+        schema:
+          type: integer
+          example: 1
+
+    get:
+      tags: [Notes]
+      summary: Получить заметку по идентификатору
+      operationId: getNote
+      responses:
+        '200':
+          description: Заметка найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+              example:
+                id: 1
+                title: Купить хлеб
+                text: Зайти в магазин после работы
+                created_at: '2026-10-09T09:30:00Z'
+                status: draft
+        '404':
+          description: Заметка не найдена
+
+    delete:
+      tags: [Notes]
+      summary: Удалить заметку
+      description: Безвозвратно удаляет заметку. Повторный вызов вернёт 404.
+      operationId: deleteNote
+      responses:
+        '204':
+          description: Заметка удалена
+        '404':
+          description: Заметка не найдена
+
+  /notes/{noteId}/status:
+    parameters:
+      - name: noteId
+        in: path
+        required: true
+        description: Идентификатор заметки
+        schema:
+          type: integer
+          example: 1
+
+    patch:
+      tags: [Notes]
+      summary: Изменить статус заметки
+      description: Переход между любыми статусами разрешён, ограничений на порядок нет.
+      operationId: updateNoteStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteStatusUpdate'
+            example:
+              status: published
+      responses:
+        '200':
+          description: Статус изменён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+              example:
+                id: 1
+                title: Купить хлеб
+                text: Зайти в магазин после работы
+                created_at: '2026-10-09T09:30:00Z'
+                status: published
+        '400':
+          description: Недопустимое значение статуса
+        '404':
+          description: Заметка не найдена
+
+components:
+  schemas:
+    Note:
+      type: object
+      required: [id, title, text, created_at, status]
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Купить хлеб
+        text:
+          type: string
+          example: Зайти в магазин после работы
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-10-09T09:30:00Z'
+        status:
+          $ref: '#/components/schemas/NoteStatus'
+
+    NoteCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Купить хлеб
+        text:
+          type: string
+          example: Зайти в магазин после работы
+
+    NoteStatus:
+      type: string
+      enum: [draft, published, archived]
+      example: draft
+
+    NoteStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/NoteStatus'
